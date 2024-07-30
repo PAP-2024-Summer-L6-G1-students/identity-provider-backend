@@ -1,11 +1,33 @@
-const express = require('express')
-const app = express()
-const port = 3000
+const cors = require('cors');
+const express = require('express');
+const { connectMongoose } = require('./connect');
+const Users = require('./models/Users');
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+const app = express();
+const port = process.env.PORT || 3002;
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+app.use(cors());
+app.use(express.json());
+
+
+app.get('/', async (req, res) => {
+
+  const results = await Users.readAll();
+  res.send(results);
+console.log(results)
+  console.log("GET request received on home page");
+});
+
+//* ********************* Launching the server **************** */
+
+const start = async () => {
+  try {
+      await connectMongoose();
+      app.listen(port, () => console.log(`Server running on port ${port}...`));
+  }
+  catch (err) {
+      console.error(err);
+  }
+}
+
+start();
