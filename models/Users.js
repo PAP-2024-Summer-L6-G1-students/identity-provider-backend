@@ -40,6 +40,17 @@ class UserClass {
             return [];
         }
     }
+    static async readOne(user) {
+        try {
+            const results = await User.findOne({userName: user});
+            return results;
+        }
+        catch (e) {
+            console.error(e);
+            return [];
+        }
+    }
+
     // static async update(messageId, messageUpdate) {
     //     try {
     //         const result = await Message.updateOne({ _id: messageId }, messageUpdate);
