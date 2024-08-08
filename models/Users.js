@@ -4,10 +4,19 @@ const { Schema, model } = require('mongoose');
 
 const userSchema = new Schema({
     userName: String,
+    email: String,
+    password: String,
+    createDate: Date,
+    accountType: String,
+
     firstName: String,
     lastName: String,
-    createDate: Date,
-    password: String
+    address: String,
+    phone: Number,
+    interests: [String],
+    birthday: Date,
+    avaliability: []
+
 });
 
 class UserClass {
@@ -23,7 +32,7 @@ class UserClass {
     }
     static async readAll() {
         try {
-            const results = await User.findOne();
+            const results = await User.find();
             return results;
         }
         catch (e) {
@@ -31,6 +40,17 @@ class UserClass {
             return [];
         }
     }
+    static async readOne(user) {
+        try {
+            const results = await User.findOne({userName: user});
+            return results;
+        }
+        catch (e) {
+            console.error(e);
+            return [];
+        }
+    }
+
     // static async update(messageId, messageUpdate) {
     //     try {
     //         const result = await Message.updateOne({ _id: messageId }, messageUpdate);
