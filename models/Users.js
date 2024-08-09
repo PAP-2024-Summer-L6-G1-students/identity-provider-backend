@@ -69,16 +69,18 @@ class UserClass {
         }
     }
 
-    // static async delete(messageId) {
-    //     try {
-    //         const result = await Message.deleteOne({ _id: messageId });
-    //         return result;
-    //     }
-    //     catch (e) {
-    //         console.error(e);
-    //         return { deletedCount: 0 };
-    //     }
-    // }
+
+    
+    static async delete(user) {
+        try {
+            const result = await User.deleteOne({ userName: user });
+            return result;
+        }
+        catch (e) {
+            console.error(e);
+            return { deletedCount: 0 };
+        }
+    }
 }
 
 userSchema.loadClass(UserClass);

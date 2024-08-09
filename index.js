@@ -39,14 +39,22 @@ app.patch('/:user', async (req, res) => {
       return res.status(404).json({ error: 'User not found or no changes made' });
     }
     res.status(200).json({ message: 'Update successful', result });
-    
-    console.log(req.params.user, field, fieldUpdate);
     console.log(`PATCH request received on ${req.params.user} route`);
 
   } catch (error) {
     console.error('Error updating user:', error);
     res.status(500).json({ error: 'An error occurred while updating the user' });
   }
+});
+
+// Delete route to delete an existing message
+app.delete('/:user/delete', async (req, res) => {
+
+  const results = await Users.delete(req.user);
+  res.sendStatus(200);
+
+  console.log("DELETE request received on message route")
+  console.log(`Message with id ${req.params.id} deleted`);
 });
 
 
