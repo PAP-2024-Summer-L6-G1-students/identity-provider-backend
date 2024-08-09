@@ -21,9 +21,15 @@ const userSchema = new Schema({
 });
 
 class UserClass {
-    static async createNew(user) {
+    static async createUser(req) {
         try {
-            const newUser = await User.create(user);
+            const { password, email } = req.body;
+            userSchema.userName = req.params.user;
+            userSchema.password = password;
+            userSchema.email = email;
+            userSchema.createDate = new Date();
+            userSchema.accountType = "user"
+            const newUser = await User.create(userSchema);
             return newUser;
         }
         catch (e) {
@@ -31,6 +37,7 @@ class UserClass {
             return { _id: -1 }
         }
     }
+
     static async readAll() {
         try {
             const results = await User.find();
@@ -44,7 +51,7 @@ class UserClass {
 
     static async readOne(user) {
         try {
-            const results = await User.findOne({userName: user});
+            const results = await User.findOne({ userName: user });
             return results;
         }
         catch (e) {
@@ -54,10 +61,9 @@ class UserClass {
     }
 
     static async update(user, field, fieldUpdate) {
-        console.log("this is field", field)
         try {
-            const updateObject = {[field]: fieldUpdate};
-            const result = await User.updateOne({ userName: user }, updateObject );
+            const updateObject = { [field]: fieldUpdate };
+            const result = await User.updateOne({ userName: user }, updateObject);
             return result;
         }
         catch (e) {
@@ -68,8 +74,6 @@ class UserClass {
             }
         }
     }
-
-
     
     static async delete(user) {
         try {
