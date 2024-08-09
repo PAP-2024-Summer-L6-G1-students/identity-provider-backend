@@ -53,8 +53,10 @@ class UserClass {
     }
 
     static async update(user, field, fieldUpdate) {
+        console.log("this is field", field)
         try {
-            const result = await Message.updateOne({ userName: user }, {field: fieldUpdate});
+            const updateObject = {[field]: fieldUpdate};
+            const result = await User.updateOne({ userName: user }, updateObject );
             return result;
         }
         catch (e) {
