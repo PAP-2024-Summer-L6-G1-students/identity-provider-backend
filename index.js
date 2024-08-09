@@ -2,6 +2,7 @@ const cors = require('cors');
 const express = require('express');
 const { connectMongoose } = require('./connect');
 const Users = require('./models/Users');
+require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3002;
@@ -25,13 +26,12 @@ app.get('/:userName', async (req, res) => {
 });
 
 
-
 //* ********************* Launching the server **************** */
 
 const start = async () => {
   try {
-      await connectMongoose();
-      app.listen(port, () => console.log(`Server running on port ${port}...`));
+     await connectMongoose();
+     app.listen(port, () => console.log(`Server running on port ${port}...`));
   }
   catch (err) {
       console.error(err);

@@ -40,6 +40,7 @@ class UserClass {
             return [];
         }
     }
+
     static async readOne(user) {
         try {
             const results = await User.findOne({userName: user});
@@ -51,19 +52,20 @@ class UserClass {
         }
     }
 
-    // static async update(messageId, messageUpdate) {
-    //     try {
-    //         const result = await Message.updateOne({ _id: messageId }, messageUpdate);
-    //         return result;
-    //     }
-    //     catch (e) {
-    //         console.error(e);
-    //         return {
-    //             modifiedCount: 0,
-    //             acknowledged: false
-    //         }
-    //     }
-    // }
+    static async update(user, field, fieldUpdate) {
+        try {
+            const result = await Message.updateOne({ userName: user }, {field: fieldUpdate});
+            return result;
+        }
+        catch (e) {
+            console.error(e);
+            return {
+                modifiedCount: 0,
+                acknowledged: false
+            }
+        }
+    }
+
     // static async delete(messageId) {
     //     try {
     //         const result = await Message.deleteOne({ _id: messageId });
