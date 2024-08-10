@@ -21,10 +21,10 @@ const userSchema = new Schema({
 });
 
 class UserClass {
-    static async createUser(req) {
+    //Create User
+    static async createUser(userName, email, password) {
         try {
-            const { password, email } = req.body;
-            userSchema.userName = req.params.user;
+            userSchema.userName = userName;
             userSchema.password = password;
             userSchema.email = email;
             userSchema.createDate = new Date();
@@ -38,6 +38,7 @@ class UserClass {
         }
     }
 
+    //Return all users
     static async readAll() {
         try {
             const results = await User.find();
@@ -49,6 +50,7 @@ class UserClass {
         }
     }
 
+    //returns one user
     static async readOne(user) {
         try {
             const results = await User.findOne({ userName: user });
@@ -60,6 +62,7 @@ class UserClass {
         }
     }
 
+    //updates user
     static async update(user, field, fieldUpdate) {
         try {
             const updateObject = { [field]: fieldUpdate };
@@ -75,6 +78,7 @@ class UserClass {
         }
     }
     
+    //deletes user
     static async delete(user) {
         try {
             const result = await User.deleteOne({ userName: user });

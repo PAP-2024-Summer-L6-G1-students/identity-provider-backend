@@ -2,6 +2,8 @@ const cors = require('cors');
 const express = require('express');
 const { connectMongoose } = require('./connect');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 const Users = require('./models/Users');
 require('dotenv').config();
 
@@ -32,6 +34,7 @@ app.get('/:userName', async (req, res) => {
 });
 
 // Login route
+/*
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   user = Users.readOne(username);
@@ -44,6 +47,7 @@ app.post('/login', (req, res) => {
     res.status(401).send('Invalid credentials');
   }
 });
+*/
 
 // Update route to update an existing message
 app.patch('/:user', async (req, res) => {
@@ -73,20 +77,19 @@ app.patch('/:user', async (req, res) => {
 });
 
 // Post route to post a new message
-app.post('/create/:user', async (req, res) => {
+app.post('/create', async (req, res) => {
   try {
-    const { password, email } = req.body;
+    let { user, password, email } = req.body;
     if (!password || email === undefined) {
       return res.status(400).json({ error: 'password and email are required' });
     }
-
-    const results = await Users.createUser(req);
+    //hash password with salt
+    bcrypt.hash(password, saltRounds, async (err, hash) => {
+      await Users.createUser(user, email, hash);
+    });
+    console.log(`User ${user} created`);
     res.sendStatus(201);
 
-    console.log(`New user created
-  username: ${results.userName}
-  password: ${results.password}
-  email: ${results.email}`);
   } catch (error) {
     console.error('Error creating user:', error);
     res.status(500).json({ error: 'An error occurred while creating user' });
