@@ -1,6 +1,7 @@
 const cors = require('cors');
 const express = require('express');
 const { connectMongoose } = require('./connect');
+const jwt = require('jsonwebtoken');
 const Users = require('./models/Users');
 require('dotenv').config();
 
@@ -27,6 +28,20 @@ app.get('/:userName', async (req, res) => {
   } catch (error) {
     console.error('Error finding user:', error);
     res.status(500).json({ error: 'An error occurred while finding user' });
+  }
+});
+
+// Login route
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  user = Users.readOne(username);
+  // Validate user credentials (replace with your own validation logic)
+  if (username === user.userName && password === user.password) {
+    // Create a JWT
+    const token = jwt.sign({ user.userName }, SECRET_KEY, { expiresIn: '7h' });
+    res.json({ token });
+  } else {
+    res.status(401).send('Invalid credentials');
   }
 });
 
