@@ -97,20 +97,19 @@ app.post('/create', async (req, res) => {
 });
 
 // Delete route to delete an existing user
-app.delete('/delete/:user', async (req, res) => {
+app.delete('/delete', async (req, res) => {
   try {
-    const user = await Users.findOne({ userName: req.params.user });
-    if (!user) {
+    const user = req.body.userName;
+    if (!await Users.readOne( user )) {
       return res.status(404).json({ error: 'User not found' });
     }
-    const result = await Users.deleteOne({ userName: req.params.user });
+    const result = await Users.delete(user);
     if (result.deletedCount === 0) {
       // Handle the case where the delete operation didn't actually remove any document
       return res.status(500).json({ error: 'Failed to delete user' });
     }
     res.sendStatus(200);
-    console.log("DELETE request received on /delete/:user route");
-    console.log(`User with username ${req.params.user} deleted`);
+    console.log(`User ${user} deleted`);
 
   } catch (error) {
     console.error('Error deleting user:', error);
