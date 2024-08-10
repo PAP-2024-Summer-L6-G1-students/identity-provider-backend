@@ -19,12 +19,12 @@ app.get('/', async (req, res) => {
 
 // Reads information of specific user
 app.get('/:userName', async (req, res) => {
-  try{
-  const results = await Users.readOne(req.params.userName);
-  res.send(results);
-  console.log(results);
-  console.log(`GET request received on ${req.body.params} page`);
-   } catch (error) {
+  try {
+    const results = await Users.readOne(req.params.userName);
+    res.send(results);
+    console.log(results);
+    console.log(`GET request received on ${req.body.params} page`);
+  } catch (error) {
     console.error('Error finding user:', error);
     res.status(500).json({ error: 'An error occurred while finding user' });
   }
@@ -38,6 +38,11 @@ app.patch('/:user', async (req, res) => {
     // Validate required fields
     if (!field || fieldUpdate === undefined) {
       return res.status(400).json({ error: 'field and fieldUpdate are required' });
+    }
+    if (field === "interests" || "avaliability") {
+      if (!Array.isArray(fieldUpdate)) {
+        return res.status(400).json({ error: 'array field required' });
+      }
     }
     const result = await Users.update(req.params.user, field, fieldUpdate);
     if (result.modifiedCount === 0) {
@@ -54,20 +59,20 @@ app.patch('/:user', async (req, res) => {
 
 // Post route to post a new message
 app.post('/create/:user', async (req, res) => {
-  try{
-  const { password, email } = req.body;
-  if (!password || email === undefined) {
-    return res.status(400).json({ error: 'password and email are required' });
-  }
+  try {
+    const { password, email } = req.body;
+    if (!password || email === undefined) {
+      return res.status(400).json({ error: 'password and email are required' });
+    }
 
-  const results = await Users.createUser(req);
-  res.sendStatus(201);
+    const results = await Users.createUser(req);
+    res.sendStatus(201);
 
-  console.log(`New user created
+    console.log(`New user created
   username: ${results.userName}
   password: ${results.password}
   email: ${results.email}`);
-  }catch (error) {
+  } catch (error) {
     console.error('Error creating user:', error);
     res.status(500).json({ error: 'An error occurred while creating user' });
   }
