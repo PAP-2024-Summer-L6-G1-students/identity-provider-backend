@@ -21,6 +21,7 @@ async function connectMongoose() {
         if (mongooseConnection !== null) {
             mongooseConnection.close(()=>autoDisconnect(mongooseConnection, 'error-based'));
             mongooseConnection = null;
+            console
         }
     }
 
