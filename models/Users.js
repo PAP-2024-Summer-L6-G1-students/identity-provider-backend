@@ -8,6 +8,7 @@ const userSchema = new Schema({
     password: String,
     createDate: Date,
     accountType: String,
+    UUID: String,
 
     firstName: String,
     lastName: String,
