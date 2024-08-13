@@ -13,6 +13,23 @@ const port = process.env.PORT || 3002;
 app.use(cors());
 app.use(express.json());
 
+app.get('/SSO/user', async (req, res) => {
+  const { UUID } = req.query;
+
+  if (!UUID) {
+      return res.status(400).json({ message: 'UUID is required' });
+  }
+
+  try {
+      const user = await Users.findOne({ UUID });
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+      res.json(user);
+  } catch (error) {
+      res.status(500).json({ message: 'Server error' });
+  }
+});
 
 
 app.get('/TEST', async (req, res) => {
