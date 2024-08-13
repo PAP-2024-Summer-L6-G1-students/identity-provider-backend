@@ -7,7 +7,7 @@ const userSchema = new Schema({
     firstName: String,
     lastName: String,
     createDate: Date,
-    password: String
+    password: String,
 });
 
 class UserClass {
@@ -29,6 +29,17 @@ class UserClass {
         catch (e) {
             console.error(e);
             return [];
+        }
+    }
+    static async findUserByEmail() {
+        try {
+            const user = await User.findOne({
+                email: email
+            })
+            return user;
+        } catch (e) {
+            console.error(e)
+            return null;
         }
     }
     // static async update(messageId, messageUpdate) {
