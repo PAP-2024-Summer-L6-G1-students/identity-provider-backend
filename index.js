@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const Users = require('./models/Users');
+const SSOAPIKey = require('./models/SSOAPIKey.js');
+
 require('dotenv').config();
 
 const app = express();
@@ -12,6 +14,56 @@ const port = process.env.PORT || 3002;
 
 app.use(cors());
 app.use(express.json());
+
+app.get('/sso/get-api-info/:USER_UUID', async (req, res) => {
+  try {
+      const apiKeyInfo = await SSOAPIKey.findOne({ 
+        userUUID: req.params.USER_UUID });
+      if (!apiKeyInfo) {
+          return res.status(404).send('NO API KEY EXSISTS CURRENTLY TRY AGAIN');
+      }
+      res.json(apiKeyInfo);
+  } catch (error) {
+      console.error('Error ERRORS ERRORS fetching API Key information:', error);
+      res.status(500).send('Internal Server Error');
+  }
+});
+
+app.put('/sso/save-api-info/:USER_UUID', async (req, res) => {
+  try {
+      const updateData = {
+          apiKey: req.body.apiKey,
+          userUUID: req.params.USER_UUID,  
+          websiteDomain: req.body.websiteDomain,
+          afterSignupRedirectRoute: req.body.afterSignupRedirectRoute,
+          afterLoginRedirectRoute: req.body.afterLoginRedirectRoute,
+          websiteServerDomain: req.body.websiteServerDomain,
+          requiresEmail: req.body.requiresEmail,
+          requiresFirstName: req.body.requiresFirstName,
+          requiresLastName: req.body.requiresLastName,
+          requiresAddress: req.body.requiresAddress,
+          requiresPhoneNumber: req.body.requiresPhoneNumber,
+          requiresInterests: req.body.requiresInterests,
+          requiresBirthdate: req.body.requiresBirthdate,
+          requiresAvailability: req.body.requiresAvailability,
+          requiresBio: req.body.requiresBio
+      };
+
+      const options = { new: true, upsert: true };
+
+      const updatedApiKeyInfo = await SSOAPIKey.findOneAndUpdate(
+          { userUUID: req.params.USER_UUID},
+          updateData,
+          options
+      );
+
+      res.json(updatedApiKeyInfo);
+  } catch (error) {
+      console.error('Error updating API Key information:', error);
+      res.status(500).send('Internal Server Error');
+  }
+});
+
 
 app.get('/SSO/user', async (req, res) => {
   const { UUID } = req.query;
