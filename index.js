@@ -25,10 +25,6 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-app.get('/sso/get-user-info', async (req, res) => {
-  console.log("Cookies:", req.cookies);
-});
-
 app.get('/sso/get-api-info', async (req, res) => {
   // const token = req.cookies.token;
   // if (token) {
@@ -62,7 +58,7 @@ app.get('/sso/get-api-info', async (req, res) => {
                 return res.status(403).json([]); // Forbidden if user exists and token not provided
             } else {
               try {
-                  console.log(decoded);
+                  console.log("Decoded:", decoded);
                   const apiKeyInfo = await SSOAPIKey.findOne({ 
                     userUUID: decoded.UUID });
                   if (!apiKeyInfo) {
@@ -227,15 +223,52 @@ app.get('/:userName', async (req, res) => {
 });
 
 // Route - Relying party uses this to get info for a user
-app.get('/SSO/get-user-info/:userName', async (req, res) => {
+app.get('/SSO/get-user-info/:userUUID/:apiKey', async (req, res) => {
   try {
-    const results = await Users.readOneByName(req.params.userName);
-    res.send(results);
-    console.log(results);
+    const existingAPIKey = await SSOAPIKey.findOne({apiKey: req.params.apiKey});
+
+    if (existingAPIKey !== null) {
+      const results = await Users.readOneByUUID(req.params.userUUID);
+      const filteredResults = {
+
+      };
+
+      console.log("Existing API Key:", existingAPIKey);
+      if (existingAPIKey.requiresEmail == true) {
+        filteredResults.email = results.email;
+      }
+      if (existingAPIKey.requiresFirstName == true) {
+        filteredResults.firstName = results.firstName;
+      }
+      if (existingAPIKey.requiresLastName == true) {
+        filteredResults.lastName = results.lastName;
+      }
+      if (existingAPIKey.requiresAddress == true) {
+        filteredResults.address = results.address;
+      }
+      if (existingAPIKey.requiresPhoneNumber == true) {
+        filteredResults.phone = results.phone;
+      }
+      if (existingAPIKey.requiresInterests == true) {
+        filteredResults.interests = results.interests;
+      }
+      if (existingAPIKey.requiresBirthdate == true) {
+        filteredResults.birthday = results.birthday;
+      }
+      if (existingAPIKey.requiresAvailability == true) {
+        filteredResults.availability = results.availability;
+      }
+      if (existingAPIKey.requiresBio == true) {
+        filteredResults.bio = results.bio;
+      }
+      console.log("Filtered results:", filteredResults);
+      return res.json(filteredResults);
+    }
+    console.log("Results", results);
     console.log(`GET request received on ${req.body.params} page`);
   } catch (error) {
     console.error('Error finding user:', error);
-    res.status(500).json({ error: 'An error occurred while finding user' });
+    return res.status(500).json({ error: 'An error occurred while finding user' });
   }
 });
 
