@@ -210,7 +210,7 @@ app.post('/login', async (req, res) => {
                   httpOnly: true,
                   sameSite: 'None',
                   secure: true,
-                  domain: ".onrender.com"
+                  domain: "onrender.com"
               });
 
               return res.sendStatus(200);
@@ -277,7 +277,7 @@ app.post('/create', async (req, res) => {
             httpOnly: true,
             sameSite: 'None',
             secure: true,
-            domain: ".onrender.com"
+            domain: "onrender.com"
         });
       }
     });
