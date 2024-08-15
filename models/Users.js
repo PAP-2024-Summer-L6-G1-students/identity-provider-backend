@@ -1,0 +1,97 @@
+require('dotenv').config();
+const collectionName = "users";
+const { Schema, model } = require('mongoose');
+
+const userSchema = new Schema({
+    userName: String,
+    email: String,
+    password: String,
+    createDate: Date,
+    accountType: String,
+    UUID: String,
+
+    firstName: String,
+    lastName: String,
+    address: String,
+    phone: Number,
+    interests: [String],
+    birthday: Date,
+    avaliability: [],
+    bio: String
+
+});
+
+class UserClass {
+    //Create User
+    static async createUser(userName, email, password) {
+        try {
+            userSchema.userName = userName;
+            userSchema.password = password;
+            userSchema.email = email;
+            userSchema.createDate = new Date();
+            userSchema.accountType = "user"
+            const newUser = await User.create(userSchema);
+            return newUser;
+        }
+        catch (e) {
+            console.error(e);
+            return { _id: -1 }
+        }
+    }
+
+    //Return all users
+    static async readAll() {
+        try {
+            const results = await User.find();
+            return results;
+        }
+        catch (e) {
+            console.error(e);
+            return [];
+        }
+    }
+
+    //returns one user
+    static async readOne(user) {
+        try {
+            const results = await User.findOne({ userName: user });
+            return results;
+        }
+        catch (e) {
+            console.error(e);
+            return [];
+        }
+    }
+
+    //updates user
+    static async update(user, field, fieldUpdate) {
+        try {
+            const updateObject = { [field]: fieldUpdate };
+            const result = await User.updateOne({ userName: user }, updateObject);
+            return result;
+        }
+        catch (e) {
+            console.error(e);
+            return {
+                modifiedCount: 0,
+                acknowledged: false
+            }
+        }
+    }
+    
+    //deletes user
+    static async delete(user) {
+        try {
+            const result = await User.deleteOne({ userName: user });
+            return result;
+        }
+        catch (e) {
+            console.error(e);
+            return { deletedCount: 0 };
+        }
+    }
+}
+
+userSchema.loadClass(UserClass);
+const User = model('Users', userSchema, collectionName);
+module.exports = User;
