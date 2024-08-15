@@ -14,7 +14,7 @@ const app = express();
 const port = process.env.PORT || 3002;
 
 app.use(cors({
-    origin: (proccess.env.ENVIRONMENT === "live")?"https://volunteer-identity-provider.onrender.com":'https://localhost:5173',
+    origin: (process.env.ENVIRONMENT === "live")?"https://identity-provider-frontend.onrender.com":'https://localhost:5173',
     credentials: true
 }));
 app.use(express.json());
