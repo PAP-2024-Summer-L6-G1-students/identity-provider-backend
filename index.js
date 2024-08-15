@@ -201,7 +201,7 @@ app.post('/login', async (req, res) => {
   console.log("POST request received on login route");
   const user = req.body;
 
-  const existingUser = await Users.readOne(user.username);
+  const existingUser = await Users.readOne(user.userName);
   if (existingUser !== null) {
       bcrypt.compare(user.password, existingUser.password, function(err, result) {
           if (!(err instanceof Error) && result) {
