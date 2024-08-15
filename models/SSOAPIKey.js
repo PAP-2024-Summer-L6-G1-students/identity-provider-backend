@@ -6,18 +6,17 @@ const SSOAPIKey = new Schema({
     userUUID: String,
     websiteDomain: String,
     afterSignupRedirectRoute: String,
-    afterLoginRedirectRoute: String,
+    afterLoginRedirectRoute: String, 
     websiteServerDomain: String,
     requiresEmail: Boolean,
     requiresFirstName: Boolean,
     requiresLastName: Boolean,
     requiresAddress: Boolean,
-    requiresPhoneNumber: Boolean,
+    requiresPhoneNumber: Boolean, 
     requiresInterests: Boolean,
     requiresBirthdate: Boolean,
     requiresAvailability: Boolean,
     requiresBio: Boolean
-
 });
 
 const SSO = model('SSOAPIKey', SSOAPIKey);

@@ -17,7 +17,7 @@ const userSchema = new Schema({
     phone: Number,
     interests: [String],
     birthday: Date,
-    avaliability: [],
+    availability: [],
     bio: String
 
 });
