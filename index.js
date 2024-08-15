@@ -14,7 +14,7 @@ const app = express();
 const port = process.env.PORT || 3002;
 
 app.use(cors({
-    origin: (process.env.ENVIRONMENT === "live")?"https://identity-provider-frontend.onrender.com":'https://localhost:5173',
+    // origin: (process.env.ENVIRONMENT === "live")?"https://identity-provider-frontend.onrender.com":'https://localhost:5173',
     credentials: true
 }));
 app.use(express.json());
@@ -208,7 +208,8 @@ app.post('/login', async (req, res) => {
               const token = jwt.sign({ username: user.userName }, process.env.JWT_SECRET, { expiresIn: '7d' });
               res.cookie('token', token, {
                   httpOnly: true,
-                  sameSite: 'None',
+                  sameSite: 'Lax',
+                  domain: '.onrender.com',
                   secure: true,
                   path: "/"
               });
@@ -274,10 +275,11 @@ app.post('/create', async (req, res) => {
         await Users.createUser(user, email, hash);
         const token = jwt.sign({ username: user.userName }, process.env.JWT_SECRET, { expiresIn: '7d' });
         res.cookie('token', token, {
-            httpOnly: true,
-            sameSite: 'None',
-            secure: true,
-            path: "/"
+          httpOnly: true,
+          sameSite: 'Lax',
+          domain: '.onrender.com',
+          secure: true,
+          path: "/"
         });
       }
     });
