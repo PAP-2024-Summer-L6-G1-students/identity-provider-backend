@@ -10,18 +10,24 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const Users = require('./models/Users');
 const SSOAPIKey = require('./models/SSOAPIKey.js');
-
+const LoginAuthorization = require('./models/LoginAuthorization.js');
+const {v4:uuidv4} = require("uuid");
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3002;
 
+
 app.use(cors({
-    origin: 'https://localhost:5173',
-    credentials: true
+  origin: ['https://localhost:5173', 'https://localhost:3003'],
+  credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+app.get('/sso/get-user-info', async (req, res) => {
+  console.log("Cookies:", req.cookies);
+});
 
 app.get('/sso/get-api-info', async (req, res) => {
   // const token = req.cookies.token;
@@ -54,6 +60,19 @@ app.get('/sso/get-api-info', async (req, res) => {
             if (user === null) {
               console.log("user doesn't exist")
                 return res.status(403).json([]); // Forbidden if user exists and token not provided
+            } else {
+              try {
+                  console.log(decoded);
+                  const apiKeyInfo = await SSOAPIKey.findOne({ 
+                    userUUID: decoded.UUID });
+                  if (!apiKeyInfo) {
+                      return res.status(404).send('NO API KEY EXSISTS CURRENTLY TRY AGAIN');
+                  }
+                  res.json(apiKeyInfo);
+              } catch (error) {
+                  console.error('Error ERRORS ERRORS fetching API Key information:', error);
+                  res.status(500).send('Internal Server Error');
+              }
             }
           }
       });
@@ -62,18 +81,15 @@ app.get('/sso/get-api-info', async (req, res) => {
     console.log("Third error")
     return res.status(403).json([]); // Forbidden if user exists and token not provided
   }
-  try {
-      const apiKeyInfo = await SSOAPIKey.findOne({ 
-        userUUID: req.params.USER_UUID });
-      if (!apiKeyInfo) {
-          return res.status(404).send('NO API KEY EXSISTS CURRENTLY TRY AGAIN');
-      }
-      res.json(apiKeyInfo);
-  } catch (error) {
-      console.error('Error ERRORS ERRORS fetching API Key information:', error);
-      res.status(500).send('Internal Server Error');
-  }
 });
+
+// Reads all API keys
+app.get('/sso/getAll', async (req, res) => {
+  const results = await SSOAPIKey.find();
+  res.json(results);
+  console.log("GET request received on home page");
+});
+
 
 app.put('/sso/save-api-info/:USER_UUID', async (req, res) => {
   try {
@@ -246,7 +262,8 @@ app.post('/login', async (req, res) => {
   if (existingUser !== null) {
       bcrypt.compare(user.password, existingUser.password, function(err, result) {
           if (!(err instanceof Error) && result) {
-              const token = jwt.sign({ UUID: user.UUID }, process.env.JWT_SECRET, { expiresIn: '7d' });
+              console.log(user);
+              const token = jwt.sign({ UUID: existingUser.UUID }, process.env.JWT_SECRET, { expiresIn: '7d' });
               res.cookie('token', token, {
                 httpOnly: true,
                 sameSite: 'None',
@@ -262,6 +279,66 @@ app.post('/login', async (req, res) => {
   }
   else {
       return res.sendStatus(401);
+  }
+});
+
+// ROUTE - AUTHORIZE SSO LOGIN
+app.post('/SSO/authorizelogin', async (req, res) => {
+  const authorizationCode = req.body.authorizationCode;
+  const existingAuthorization = await LoginAuthorization.findOne({authorizationCode});
+
+  console.log(existingAuthorization, req.body);
+  if (existingAuthorization !== null && existingAuthorization.apiKey === req.body.apiKey) {
+    // const token = jwt.sign({ userUUID: existingAuthorization.userUUID }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    // res.cookie('token', token, {
+    //   httpOnly: true,
+    //   sameSite: 'None',
+    //   secure: true
+    // });
+    return res.status(200).json({userUUID: existingAuthorization.userUUID});
+  }
+  return res.sendStatus(404);
+});
+
+// ROUTE - SSO LOGIN
+app.post('/SSO/login', async (req, res) => {
+  console.log("POST request received on login route");
+  const {user, websiteDomain} = req.body;
+  const existingAPIKey = await SSOAPIKey.findOne({websiteDomain});
+
+  let redirectRoute;
+  if (existingAPIKey !== null) {
+    redirectRoute = existingAPIKey.websiteDomain + existingAPIKey.afterLoginRedirectRoute;
+  } else {
+    return res.sendStatus(404);
+  }
+
+  const existingUser = await Users.readOneByName(user.userName);
+  if (existingUser !== null) {
+      bcrypt.compare(user.password, existingUser.password, async function(err, result) {
+          if (!(err instanceof Error) && result) {
+              const token = jwt.sign({ UUID: existingUser.UUID }, process.env.JWT_SECRET, { expiresIn: '7d' });
+              res.cookie('token', token, {
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true
+              });
+              const response = await LoginAuthorization.create({
+                apiKey: existingAPIKey.apiKey,
+                authorizationCode: uuidv4(),
+                userUUID:existingUser.UUID});
+                console.log(response);
+              return res.status(200).json({redirect: redirectRoute, authorization: response.authorizationCode});
+          }
+          else {
+            console.log(err);
+            return res.sendStatus(401);
+          }
+      });
+  }
+  else {
+    console.log(user);
+    return res.sendStatus(401);
   }
 });
 
