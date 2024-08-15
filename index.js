@@ -209,7 +209,8 @@ app.post('/login', async (req, res) => {
               res.cookie('token', token, {
                   httpOnly: true,
                   sameSite: 'None',
-                  secure: true
+                  secure: true,
+                  domain: ".onrender.com"
               });
 
               return res.sendStatus(200);
@@ -275,7 +276,8 @@ app.post('/create', async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,
             sameSite: 'None',
-            secure: true
+            secure: true,
+            domain: ".onrender.com"
         });
       }
     });
