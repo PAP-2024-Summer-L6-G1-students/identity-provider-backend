@@ -1,6 +1,7 @@
 require('dotenv').config();
 const collectionName = "users";
 const { Schema, model } = require('mongoose');
+const { v4: uuidv4 } = require("uuid");
 
 const userSchema = new Schema({
     userName: String,
@@ -23,13 +24,13 @@ const userSchema = new Schema({
 
 class UserClass {
     //Create User
-    static async createUser(userName, email, password) {
+    static async createUser(userName, password) {
         try {
             userSchema.userName = userName;
             userSchema.password = password;
-            userSchema.email = email;
             userSchema.createDate = new Date();
             userSchema.accountType = "user"
+            userSchema.UUID = uuidv4();
             const newUser = await User.create(userSchema);
             return newUser;
         }
@@ -47,14 +48,37 @@ class UserClass {
         }
         catch (e) {
             console.error(e);
-            return [];
+            return null;
+        }
+    }
+
+    // Finds an existing user by username
+    static async usernameExists(userName) {
+        try {
+          const existingUser = await User.findOne({userName}).exec();
+          return existingUser !== null;
+        }
+        catch (e) {
+          console.error(e);
+          return false;
         }
     }
 
     //returns one user
-    static async readOne(user) {
+    static async readOneByName(user) {
         try {
             const results = await User.findOne({ userName: user });
+            return results;
+        }
+        catch (e) {
+            console.error(e);
+            return [];
+        }
+    }
+
+    static async readOneByUUID(user) {
+        try {
+            const results = await User.findOne({ UUID: user });
             return results;
         }
         catch (e) {

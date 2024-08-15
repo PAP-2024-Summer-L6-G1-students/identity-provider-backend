@@ -1,3 +1,6 @@
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
 const cors = require('cors');
 const express = require('express');
 const { connectMongoose } = require('./connect');
@@ -14,13 +17,51 @@ const app = express();
 const port = process.env.PORT || 3002;
 
 app.use(cors({
-    origin: (process.env.ENVIRONMENT === "live")?"https://identity-provider-frontend.onrender.com":'https://localhost:5173',
+    origin: 'https://localhost:5173',
     credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
 
-app.get('/sso/get-api-info/:USER_UUID', async (req, res) => {
+app.get('/sso/get-api-info', async (req, res) => {
+  // const token = req.cookies.token;
+  // if (token) {
+  //     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+  //         if (err) {
+  //           console.log("First error")
+  //           return res.status(403).json([]); // Forbidden if token is invalid
+  //         } else {
+  //           const user = await Users.readOneByUUID(req.params.USER_UUID);
+  //           if (user !== null && user.userName !== decoded.username) {
+  //             console.log("Second error")
+  //               return res.status(403).json([]); // Forbidden if user exists and token not provided
+  //           }
+  //         }
+  //     });
+  // }
+  // else {
+  //   console.log("Third error")
+  //   return res.status(403).json([]); // Forbidden if user exists and token not provided
+  // }
+  const token = req.cookies.token;
+  if (token) {
+      jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+          if (err) {
+            console.log("First error")
+            return res.status(403).json([]); // Forbidden if token is invalid
+          } else {
+            const user = await Users.readOneByUUID(decoded.UUID);
+            if (user === null) {
+              console.log("user doesn't exist")
+                return res.status(403).json([]); // Forbidden if user exists and token not provided
+            }
+          }
+      });
+  }
+  else {
+    console.log("Third error")
+    return res.status(403).json([]); // Forbidden if user exists and token not provided
+  }
   try {
       const apiKeyInfo = await SSOAPIKey.findOne({ 
         userUUID: req.params.USER_UUID });
@@ -97,7 +138,7 @@ app.get('/TEST', async (req, res) => {
 // Reads information of all users
 app.get('/', async (req, res) => {
   const results = await Users.readAll();
-  res.json({"TESTING": "HELP"});
+  res.json(results);
   console.log("GET request received on home page");
 });
 
@@ -159,7 +200,7 @@ app.get('/NO', async (req, res) => {
 // Reads information of specific user
 app.get('/:userName', async (req, res) => {
   try {
-    const results = await Users.readOne(req.params.userName);
+    const results = await Users.readOneByName(req.params.userName);
     res.send(results);
     console.log(results);
     console.log(`GET request received on ${req.body.params} page`);
@@ -172,7 +213,7 @@ app.get('/:userName', async (req, res) => {
 // Route - Relying party uses this to get info for a user
 app.get('/SSO/get-user-info/:userName', async (req, res) => {
   try {
-    const results = await Users.readOne(req.params.userName);
+    const results = await Users.readOneByName(req.params.userName);
     res.send(results);
     console.log(results);
     console.log(`GET request received on ${req.body.params} page`);
@@ -201,17 +242,15 @@ app.post('/login', async (req, res) => {
   console.log("POST request received on login route");
   const user = req.body;
 
-  const existingUser = await Users.readOne(user.userName);
+  const existingUser = await Users.readOneByName(user.userName);
   if (existingUser !== null) {
       bcrypt.compare(user.password, existingUser.password, function(err, result) {
           if (!(err instanceof Error) && result) {
-              const token = jwt.sign({ username: user.userName }, process.env.JWT_SECRET, { expiresIn: '7d' });
+              const token = jwt.sign({ UUID: user.UUID }, process.env.JWT_SECRET, { expiresIn: '7d' });
               res.cookie('token', token, {
-                  httpOnly: true,
-                  sameSite: 'Lax',
-                  domain: '.onrender.com',
-                  secure: true,
-                  path: "/"
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true
               });
 
               return res.sendStatus(200);
@@ -235,6 +274,41 @@ app.post('/logout', (req, res) => {
   res.sendStatus(200);
 });
 
+// ROUTE - SIGN UP
+app.post('/signup', async (req, res) => {
+  console.log("POST request received on signup route");
+  const newUser = req.body;
+
+  const existingUser = await Users.usernameExists(newUser.userName);
+  if (!existingUser) {
+      bcrypt.hash(newUser.password, 10, async function(err, hash) {
+          if (!(err instanceof Error)) {
+              newUser.password = hash;
+              const results = await Users.createUser(newUser.userName, newUser.password);
+              console.log(`New user created with id: ${results._id}`);
+
+              const token = jwt.sign({ UUID: results.UUID }, process.env.JWT_SECRET, { expiresIn: '7d' });
+              res.cookie('token', token, {
+                  httpOnly: true,
+                  sameSite: 'None',
+                  secure: true
+              });
+
+              return res.status(201).json({
+                  UUID: results.UUID 
+              });
+          }
+          else {
+              return res.sendStatus(500);
+          }
+      });
+  }
+  else {
+      return res.sendStatus(400);
+  }
+});
+
+
 // Update route to update an existing message
 app.patch('/:user', async (req, res) => {
   try {
@@ -244,11 +318,11 @@ app.patch('/:user', async (req, res) => {
     if (!field || fieldUpdate === undefined) {
       return res.status(400).json({ error: 'field and fieldUpdate are required' });
     }
-    if (field === "interests" || "avaliability") {
-      if (!Array.isArray(fieldUpdate)) {
-        return res.status(400).json({ error: 'array field required' });
-      }
-    }
+    // if (field === "interests" || "avaliability") {
+    //   if (!Array.isArray(fieldUpdate)) {
+    //     return res.status(400).json({ error: 'array field required' });
+    //   }
+    // }
     const result = await Users.update(req.params.user, field, fieldUpdate);
     if (result.modifiedCount === 0) {
       return res.status(404).json({ error: 'User not found or no changes made' });
@@ -265,7 +339,7 @@ app.patch('/:user', async (req, res) => {
 // Post route to post a new user
 app.post('/create', async (req, res) => {
   try {
-    let { user, password, email } = req.body;
+    let { user, password } = req.body;
     if (!password || email === undefined) {
       return res.status(400).json({ error: 'password and email are required' });
     }
@@ -276,10 +350,8 @@ app.post('/create', async (req, res) => {
         const token = jwt.sign({ username: user.userName }, process.env.JWT_SECRET, { expiresIn: '7d' });
         res.cookie('token', token, {
           httpOnly: true,
-          sameSite: 'Lax',
-          domain: '.onrender.com',
-          secure: true,
-          path: "/"
+          sameSite: 'None',
+          secure: true
         });
       }
     });
@@ -296,7 +368,7 @@ app.post('/create', async (req, res) => {
 app.delete('/delete', async (req, res) => {
   try {
     const { userName } = req.body;
-    if (!await Users.readOne( userName )) {
+    if (!await Users.readOneByName( userName )) {
       return res.status(404).json({ error: 'User not found' });
     }
     const result = await Users.delete(userName);
@@ -319,7 +391,15 @@ app.delete('/delete', async (req, res) => {
 const start = async () => {
   try {
     await connectMongoose();
-    app.listen(port, () => console.log(`Server running on port ${port}...`));
+
+    const httpsOptions = {
+      key: fs.readFileSync(path.resolve(__dirname, '../localhost-key.pem')),
+      cert: fs.readFileSync(path.resolve(__dirname, '../localhost.pem'))
+    };
+
+    https.createServer(httpsOptions, app).listen(port, () => {
+        console.log(`Express API server running on https://localhost:${port}`);
+    });
   }
   catch (err) {
     console.error(err);
