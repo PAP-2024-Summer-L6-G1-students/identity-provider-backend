@@ -2,6 +2,7 @@ const cors = require('cors');
 const express = require('express');
 const { connectMongoose } = require('./connect');
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser'); 
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const Users = require('./models/Users');
@@ -12,8 +13,12 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3002;
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 app.get('/sso/get-api-info/:USER_UUID', async (req, res) => {
   try {
@@ -164,21 +169,69 @@ app.get('/:userName', async (req, res) => {
   }
 });
 
-// Login route
-/*
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  user = Users.readOne(username);
-  // Validate user credentials (replace with your own validation logic)
-  if (username === user.userName && password === user.password) {
-    // Create a JWT
-    const token = jwt.sign({ user.userName }, SECRET_KEY, { expiresIn: '7h' });
-    res.json({ token });
-  } else {
-    res.status(401).send('Invalid credentials');
+// Route - Relying party uses this to get info for a user
+app.get('/SSO/get-user-info/:userName', async (req, res) => {
+  try {
+    const results = await Users.readOne(req.params.userName);
+    res.send(results);
+    console.log(results);
+    console.log(`GET request received on ${req.body.params} page`);
+  } catch (error) {
+    console.error('Error finding user:', error);
+    res.status(500).json({ error: 'An error occurred while finding user' });
   }
 });
-*/
+
+// Login route
+// app.post('/login', (req, res) => {
+//   const { username, password } = req.body;
+//   user = Users.readOne(username);
+//   // Validate user credentials (replace with your own validation logic)
+//   if (username === user.userName && password === user.password) {
+//     // Create a JWT
+//     const token = jwt.sign({ user.userName }, SECRET_KEY, { expiresIn: '7h' });
+//     res.json({ token });
+//   } else {
+//     res.status(401).send('Invalid credentials');
+//   }
+// });
+
+// Login Route
+app.post('/login', async (req, res) => {
+  console.log("POST request received on login route");
+  const user = req.body;
+
+  const existingUser = await Users.readOne(user.username);
+  if (existingUser !== null) {
+      bcrypt.compare(user.password, existingUser.password, function(err, result) {
+          if (!(err instanceof Error) && result) {
+              const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+              res.cookie('token', token, {
+                  httpOnly: true,
+                  sameSite: 'None',
+                  secure: true
+              });
+
+              return res.sendStatus(200);
+          }
+          else {
+              return res.sendStatus(401);
+          }
+      });
+  }
+  else {
+      return res.sendStatus(401);
+  }
+});
+
+app.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+      httpOnly: true,
+      sameSite: 'None',
+      secure: true
+  });
+  res.sendStatus(200);
+});
 
 // Update route to update an existing message
 app.patch('/:user', async (req, res) => {
@@ -207,7 +260,7 @@ app.patch('/:user', async (req, res) => {
   }
 });
 
-// Post route to post a new message
+// Post route to post a new user
 app.post('/create', async (req, res) => {
   try {
     let { user, password, email } = req.body;
@@ -216,7 +269,15 @@ app.post('/create', async (req, res) => {
     }
     //hash password with salt
     bcrypt.hash(password, saltRounds, async (err, hash) => {
-      await Users.createUser(user, email, hash);
+      if (!(err instanceof Error)) {
+        await Users.createUser(user, email, hash);
+        const token = jwt.sign({ username: user.userName }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        res.cookie('token', token, {
+            httpOnly: true,
+            sameSite: 'None',
+            secure: true
+        });
+      }
     });
     console.log(`User ${user} created`);
     res.sendStatus(201);
